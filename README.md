@@ -1,4 +1,4 @@
-#Data API Mapper
+# Data API Mapper
 A very simplistic AWS Aurora Serverless Data API mapper.
 
 ## Motivation

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import List, Dict, Any
-from dataapi_appsync_mapper.converters import GRAPHQL_CONVERTERS
+from data_api_mapper.converters import GRAPHQL_CONVERTERS
 
 
 class ParameterBuilder:
