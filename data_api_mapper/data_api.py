@@ -20,6 +20,13 @@ class ParameterBuilder:
         self.result.append(self.build_entry_map(name, value, 'stringValue'))
         return self
 
+    def add_list(self, name, value):
+        if not value:
+            raise ValueError("list can't by empty")
+        the_list = [f"'{x}'" for x in value] if isinstance(value[0], str) else [str(x) for x in value]
+        self.result.append(self.build_entry_map(name, ','.join(the_list), 'stringValue'))
+        return self
+
     def build(self):
         return self.result
 
@@ -73,13 +80,13 @@ class QueryExecutor:
         self.cluster_arn = cluster_arn
         self.database_name = database_name
 
-    def execute(self, sql, parameters) -> QueryResponse:
+    def execute(self, sql, parameters=(), wrap_result=True) -> QueryResponse:
         response = self.rds_client.execute_statement(
             secretArn=self.secret_arn, database=self.database_name,
             resourceArn=self.cluster_arn, includeResultMetadata=True,
             sql=sql, parameters=parameters
         )
-        return QueryResponse.from_dict(response)
+        return QueryResponse.from_dict(response) if wrap_result else response
 
 
 class DictionaryMapper:

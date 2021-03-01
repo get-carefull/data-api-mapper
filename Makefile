@@ -1,10 +1,6 @@
 SHELL=/bin/bash
 
-lint:
-	./setup.py flake8
-	flake8 scripts/*
-
-test: lint
+test:
 	python ./test/test.py -v
 
 install:
@@ -57,4 +53,4 @@ release-pypi:
 	twine upload dist/*.tar.gz dist/*.whl --sign --verbose
 
 
-.PHONY: release
+.PHONY: release test
