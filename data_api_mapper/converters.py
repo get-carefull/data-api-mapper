@@ -1,6 +1,5 @@
 import json
 from datetime import datetime, timezone
-from decimal import Decimal
 
 
 class JsonbToDict:
@@ -21,14 +20,14 @@ class TimestampzToDatetimeUTC:
         return datetime.fromisoformat(value).replace(tzinfo=timezone.utc)
 
 
-class NumericToDecimal:
+class NumericToFloat:
     @staticmethod
     def convert(value):
-        return Decimal(value)
+        return float(value)
 
 
 GRAPHQL_CONVERTERS = {
     'jsonb': JsonbToDict,
     'timestamptz': TimestampzToAWSDateTime,
-    'numeric': NumericToDecimal,
+    'numeric': NumericToFloat
 }

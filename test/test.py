@@ -1,6 +1,5 @@
 import os
 import unittest
-from decimal import Decimal
 
 import boto3
 from dotenv import load_dotenv
@@ -33,7 +32,7 @@ class TestDataAPI(unittest.TestCase):
                 ts TIMESTAMP WITH TIME ZONE
             );
             INSERT INTO aurora_data_api_test (a_name, doc, num_numeric, num_float, num_integer, ts)
-            VALUES ('first row', '{"string_vale": "string1", "int_value": 1, "float_value": 1.11}', 1.11, 1.11, 1, '1976-11-02 08:45:00 UTC');
+            VALUES ('first row', '{"string_vale": "string1", "int_value": 1, "float_value": 1.11}', 1.12345, 1.11, 1, '1976-11-02 08:45:00 UTC');
             VALUES ('second row', '{"string_vale": "string2", "int_value": 2, "float_value": 2.22}', 2.22, 2.22, 2, '1976-11-02 08:45:00 UTC');
         """
         query_executor.execute(sql=initial_sql, wrap_result=False)
@@ -53,7 +52,7 @@ class TestDataAPI(unittest.TestCase):
         self.assertEqual('string1', doc['string_vale'])
         self.assertEqual(1, doc['int_value'])
         self.assertEqual(1.11, doc['float_value'])
-        self.assertEqual(Decimal('1.11'), row['num_numeric'])
+        self.assertEqual(1.12345, row['num_numeric'])
         self.assertEqual(1.11, row['num_float'])
         self.assertEqual(1, row['num_integer'])
 
