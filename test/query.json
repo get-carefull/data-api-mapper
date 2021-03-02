@@ -1,0 +1,30 @@
+{
+  "arguments": {},
+  "identity": {
+            "claims": {
+                "sub": "4169f39a-db3a-4058-a907-3aa6684de0b2",
+                "email_verified": true,
+                "cognito:username": "4169f39a-db3a-4058-a907-3aa6684de0b2",
+                "given_name": "Hola",
+                "token_use": "id",
+                "name": "Hola Mundo",
+                "family_name": "Mundo",
+                "email": "holamundo@email.com"
+            },
+            "sub": "4169f39a-db3a-4058-a907-3aa6684de0b2",
+            "username": "4169f39a-db3a-4058-a907-3aa6684de0b2"
+        },
+  "source": null,
+  "prev": null,
+  "info": {
+    "selectionSetGraphQL": "{\n  field1\n  field2\n }",
+    "parentTypeName": "Query",
+    "selectionSetList": [
+      "field1",
+      "field2"
+    ],
+    "fieldName": "example",
+    "variables": {}
+  },
+  "stash": {}
+}

@@ -1,12 +1,19 @@
+import json
 import os
 import unittest
 
 import boto3
 from dotenv import load_dotenv
 
-from data_api_mapper.data_api import QueryExecutor, ParameterBuilder, GraphQLMapper
+from data_api_mapper.appsync import AppsyncEvent
+from data_api_mapper.data_api import QueryExecutor, ParameterBuilder, GraphQLMapper, DictionaryMapper
 
 load_dotenv()
+
+
+def read_json_file(path):
+    with open(path) as json_file:
+        return json.load(json_file)
 
 
 class TestDataAPI(unittest.TestCase):
@@ -55,6 +62,14 @@ class TestDataAPI(unittest.TestCase):
         self.assertEqual(1.12345, row['num_numeric'])
         self.assertEqual(1.11, row['num_float'])
         self.assertEqual(1, row['num_integer'])
+
+
+class TestAppSynEvent(unittest.TestCase):
+    def test_fields(self):
+        event = AppsyncEvent(read_json_file('query.json'))
+        self.assertEqual("Hola Mundo", event.name)
+        self.assertEqual("holamundo@email.com", event.email)
+        self.assertEqual("4169f39a-db3a-4058-a907-3aa6684de0b2", event.username)
 
 
 if __name__ == '__main__':

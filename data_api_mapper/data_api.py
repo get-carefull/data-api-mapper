@@ -20,13 +20,6 @@ class ParameterBuilder:
         self.result.append(self.build_entry_map(name, value, 'stringValue'))
         return self
 
-    def add_list(self, name, value):
-        if not value:
-            raise ValueError("list can't by empty")
-        the_list = [f"'{x}'" for x in value] if isinstance(value[0], str) else [str(x) for x in value]
-        self.result.append(self.build_entry_map(name, ','.join(the_list), 'stringValue'))
-        return self
-
     def build(self):
         return self.result
 
@@ -93,7 +86,7 @@ class DictionaryMapper:
 
     def __init__(self, metadata: QueryMetadata, converter_map=None):
         self.fields = metadata.field_names()
-        self.converters = metadata.converters(converter_map)
+        self.converters = metadata.converters(converter_map) if converter_map else [None for _ in range(0, len(self.fields))]
 
     @staticmethod
     def map_field(field_data, converter):

@@ -8,7 +8,9 @@ class AppsyncEvent:
         self.event = event
         self.info = event['info']
         self.arguments = self.event['arguments']
-        self.username = self.event['identity']['claims']['cognito:username']
+        self.username = self.event['identity']['username']
+        self.name = self.event['identity']['claims'].get('name', None)
+        self.email = self.event['identity']['claims'].get('email', None)
 
     @property
     def selection_set_list(self) -> List[str]:
