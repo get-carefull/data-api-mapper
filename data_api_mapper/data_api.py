@@ -64,7 +64,37 @@ class QueryResponse:
         return QueryResponse(a_dict['records'], QueryMetadata(row_metadata_list))
 
 
-class QueryExecutor:
+class Transaction:
+    def __init__(self, rds_client, secret_arn, cluster_arn, database_name) -> None:
+        super().__init__()
+        self.rds_client = rds_client
+        self.secret_arn = secret_arn
+        self.cluster_arn = cluster_arn
+        self.database_name = database_name
+        transaction = rds_client.begin_transaction(
+            secretArn=self.secret_arn, database=self.database_name, resourceArn=self.cluster_arn
+        )
+        self.transaction_id = transaction['transactionId']
+
+    def execute(self, sql, parameters=()) -> Dict[str, Any]:
+        return self.rds_client.execute_statement(
+            secretArn=self.secret_arn, database=self.database_name,
+            resourceArn=self.cluster_arn, includeResultMetadata=True,
+            sql=sql, parameters=parameters, transactionId=self.transaction_id
+        )
+
+    def commit(self) -> Dict[str, str]:
+        return self.rds_client.commit_transaction(
+            secretArn=self.secret_arn, resourceArn=self.cluster_arn, transactionId=self.transaction_id
+        )
+
+    def rollback(self) -> Dict[str, str]:
+        return self.rds_client.rollback_transaction(
+            secretArn=self.secret_arn, resourceArn=self.cluster_arn, transactionId=self.transaction_id
+        )
+
+
+class DataAPIClient:
 
     def __init__(self, rds_client, secret_arn, cluster_arn, database_name) -> None:
         super().__init__()
@@ -80,6 +110,9 @@ class QueryExecutor:
             sql=sql, parameters=parameters
         )
         return QueryResponse.from_dict(response) if wrap_result else response
+
+    def begin_transaction(self):
+        return Transaction(self.rds_client, self.secret_arn, self.cluster_arn, self.database_name)
 
 
 class DictionaryMapper:
