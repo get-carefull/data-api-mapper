@@ -90,7 +90,7 @@ class TestAppSync(unittest.TestCase):
         event = [{'created_at': '2021-03-03 15:51:48.082288', 'type': 'UNKNOWN_VENDOR', 'id': 9771, 'status': 'NEW', 'priority_code': 'LOW', 'details': {'date': '2021-03-03', 'name': 'PLACEMENTS SAMEN INC. MONTREAL PQ', 'amount': 7.5, 'vendor': 'Samen', 'account_subtype': 'credit card', 'institution_name': 'RBC Royal Bank', '__typename': 'AlertUnknownVendor'}}]
         result = CamelSnakeConverter.dict_to_camel(event)
         self.assertEqual("AlertUnknownVendor", result[0]['details']['__typename'])
-
+        self.assertEqual("2021-03-03 15:51:48.082288", result[0]['createdAt'])
 
 if __name__ == '__main__':
     unittest.main()
