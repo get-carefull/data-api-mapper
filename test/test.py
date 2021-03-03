@@ -5,7 +5,7 @@ import unittest
 import boto3
 from dotenv import load_dotenv
 
-from data_api_mapper.appsync import AppsyncEvent
+from data_api_mapper.appsync import AppsyncEvent, CamelSnakeConverter
 from data_api_mapper.data_api import DataAPIClient, ParameterBuilder, GraphQLMapper, DictionaryMapper
 
 load_dotenv()
@@ -83,6 +83,13 @@ class TestAppSynEvent(unittest.TestCase):
         self.assertEqual("Hola Mundo", event.name)
         self.assertEqual("holamundo@email.com", event.email)
         self.assertEqual("4169f39a-db3a-4058-a907-3aa6684de0b2", event.username)
+
+
+class TestAppSync(unittest.TestCase):
+    def test_not_convert_typename(self):
+        event = [{'created_at': '2021-03-03 15:51:48.082288', 'type': 'UNKNOWN_VENDOR', 'id': 9771, 'status': 'NEW', 'priority_code': 'LOW', 'details': {'date': '2021-03-03', 'name': 'PLACEMENTS SAMEN INC. MONTREAL PQ', 'amount': 7.5, 'vendor': 'Samen', 'account_subtype': 'credit card', 'institution_name': 'RBC Royal Bank', '__typename': 'AlertUnknownVendor'}}]
+        result = CamelSnakeConverter.dict_to_camel(event)
+        self.assertEqual("AlertUnknownVendor", result[0]['details']['__typename'])
 
 
 if __name__ == '__main__':

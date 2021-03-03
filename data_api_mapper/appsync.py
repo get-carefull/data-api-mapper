@@ -51,8 +51,10 @@ class CamelSnakeConverter:
 
     @classmethod
     def to_camel(cls, snake_str):
-        components = snake_str.split('_')
-        return components[0] + ''.join(x.title() for x in components[1:])
+        if snake_str != '__typename':
+            components = snake_str.split('_')
+            return components[0] + ''.join(x.title() for x in components[1:])
+        return snake_str
 
 
 
