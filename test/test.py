@@ -87,10 +87,11 @@ class TestAppSynEvent(unittest.TestCase):
 
 class TestAppSync(unittest.TestCase):
     def test_not_convert_typename(self):
-        event = [{'created_at': '2021-03-03 15:51:48.082288', 'type': 'UNKNOWN_VENDOR', 'id': 9771, 'status': 'NEW', 'priority_code': 'LOW', 'details': {'date': '2021-03-03', 'name': 'PLACEMENTS SAMEN INC. MONTREAL PQ', 'amount': 7.5, 'vendor': 'Samen', 'account_subtype': 'credit card', 'institution_name': 'RBC Royal Bank', '__typename': 'AlertUnknownVendor'}}]
+        event = [{'prueba_campo': '2021-03-03 15:51:48.082288', '__typename': 'TYPENAME', 'id_ok': 9771}]
         result = CamelSnakeConverter.dict_to_camel(event)
-        self.assertEqual("AlertUnknownVendor", result[0]['details']['__typename'])
-        self.assertEqual("2021-03-03 15:51:48.082288", result[0]['createdAt'])
+        self.assertEqual("TYPENAME", result[0]['__typename'])
+        self.assertEqual("2021-03-03 15:51:48.082288", result[0]['pruebaCampo'])
+        self.assertEqual(9771, result[0]['idOk'])
 
 if __name__ == '__main__':
     unittest.main()
