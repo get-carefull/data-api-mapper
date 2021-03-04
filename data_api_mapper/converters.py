@@ -29,5 +29,6 @@ class NumericToFloat:
 GRAPHQL_CONVERTERS = {
     'jsonb': JsonbToDict,
     'timestamptz': TimestampzToAWSDateTime,
+    'timestamp': TimestampzToAWSDateTime,
     'numeric': NumericToFloat
 }
