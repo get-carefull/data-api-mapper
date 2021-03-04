@@ -5,7 +5,7 @@ import unittest
 import boto3
 from dotenv import load_dotenv
 
-from data_api_mapper.appsync import AppsyncEvent
+from data_api_mapper.appsync import AppsyncEvent, CamelSnakeConverter
 from data_api_mapper.data_api import DataAPIClient, ParameterBuilder, GraphQLMapper, DictionaryMapper
 
 load_dotenv()
@@ -83,6 +83,15 @@ class TestAppSynEvent(unittest.TestCase):
         self.assertEqual("Hola Mundo", event.name)
         self.assertEqual("holamundo@email.com", event.email)
         self.assertEqual("4169f39a-db3a-4058-a907-3aa6684de0b2", event.username)
+
+
+class TestAppSync(unittest.TestCase):
+    def test_not_convert_typename(self):
+        event = [{'prueba_campo': '2021-03-03 15:51:48.082288', '__typename': 'TYPENAME', 'id_ok': 9771}]
+        result = CamelSnakeConverter.dict_to_camel(event)
+        self.assertEqual("TYPENAME", result[0]['__typename'])
+        self.assertEqual("2021-03-03 15:51:48.082288", result[0]['pruebaCampo'])
+        self.assertEqual(9771, result[0]['idOk'])
 
 
 if __name__ == '__main__':
