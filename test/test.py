@@ -93,5 +93,6 @@ class TestAppSync(unittest.TestCase):
         self.assertEqual("2021-03-03 15:51:48.082288", result[0]['pruebaCampo'])
         self.assertEqual(9771, result[0]['idOk'])
 
+
 if __name__ == '__main__':
     unittest.main()
