@@ -64,8 +64,8 @@ class TestDataAPI(unittest.TestCase):
     def test_transaction(self):
         transaction = self.data_client.begin_transaction()
         transaction.execute('''
-            INSERT INTO aurora_data_api_test (id, a_name, doc, num_numeric, num_float, num_integer, ts) 
-            VALUES (3, 'first row', '{"string_vale": "string1", "int_value": 1, "float_value": 1.11}', 1.12345, 1.11, 1, '1976-11-02 08:45:00 UTC');
+            INSERT INTO aurora_data_api_test (id, a_name, doc, num_numeric, num_float, num_integer, ts, created_at) 
+            VALUES (3, 'first row', '{"string_vale": "string1", "int_value": 1, "float_value": 1.11}', 1.12345, 1.11, 1, '1976-11-02 08:45:00 UTC', '2021-03-03 15:51:48.082288');
         ''')
         before_commit = self.data_client.execute("select * from aurora_data_api_test where id = 3")
         self.assertEqual(0, len(before_commit.records))
