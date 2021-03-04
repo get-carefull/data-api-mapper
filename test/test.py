@@ -36,11 +36,12 @@ class TestDataAPI(unittest.TestCase):
                 num_numeric NUMERIC (10, 5) DEFAULT 0.0,
                 num_float float,
                 num_integer integer,
-                ts TIMESTAMP WITH TIME ZONE
+                ts TIMESTAMP WITH TIME ZONE,
+                created_at TIMESTAMP
             );
-            INSERT INTO aurora_data_api_test (a_name, doc, num_numeric, num_float, num_integer, ts)
-            VALUES ('first row', '{"string_vale": "string1", "int_value": 1, "float_value": 1.11}', 1.12345, 1.11, 1, '1976-11-02 08:45:00 UTC');
-            VALUES ('second row', '{"string_vale": "string2", "int_value": 2, "float_value": 2.22}', 2.22, 2.22, 2, '1976-11-02 08:45:00 UTC');
+            INSERT INTO aurora_data_api_test (a_name, doc, num_numeric, num_float, num_integer, ts, created_at)
+            VALUES ('first row', '{"string_vale": "string1", "int_value": 1, "float_value": 1.11}', 1.12345, 1.11, 1, '1976-11-02 08:45:00 UTC', '2021-03-03 15:51:48.082288');
+            VALUES ('second row', '{"string_vale": "string2", "int_value": 2, "float_value": 2.22}', 2.22, 2.22, 2, '1976-11-02 08:45:00 UTC', '2021-03-03 15:51:48.082288');
         """
         data_client.execute(sql=initial_sql, wrap_result=False)
         cls.data_client = data_client
@@ -50,6 +51,7 @@ class TestDataAPI(unittest.TestCase):
         result = self.data_client.execute("select * from aurora_data_api_test where id =:id", parameters)
         row = GraphQLMapper(result.metadata).map(result.records)[0]
         self.assertEqual(1, row['id'])
+        self.assertEqual('2021-03-03T15:51:48.082288Z', row['created_at'])
         self.assertEqual('first row', row['a_name'])
         doc = row['doc']
         self.assertEqual('string1', doc['string_vale'])
