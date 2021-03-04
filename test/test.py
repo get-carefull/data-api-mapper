@@ -37,9 +37,9 @@ class TestDataAPI(unittest.TestCase):
                 num_float float,
                 num_integer integer,
                 ts TIMESTAMP WITH TIME ZONE,
-                created_at TIMESTAMP
+                tz_notimezone TIMESTAMP
             );
-            INSERT INTO aurora_data_api_test (a_name, doc, num_numeric, num_float, num_integer, ts, created_at)
+            INSERT INTO aurora_data_api_test (a_name, doc, num_numeric, num_float, num_integer, ts, tz_notimezone)
             VALUES ('first row', '{"string_vale": "string1", "int_value": 1, "float_value": 1.11}', 1.12345, 1.11, 1, '1976-11-02 08:45:00 UTC', '2021-03-03 15:51:48.082288');
             VALUES ('second row', '{"string_vale": "string2", "int_value": 2, "float_value": 2.22}', 2.22, 2.22, 2, '1976-11-02 08:45:00 UTC', '2021-03-03 15:51:48.082288');
         """
@@ -51,7 +51,7 @@ class TestDataAPI(unittest.TestCase):
         result = self.data_client.execute("select * from aurora_data_api_test where id =:id", parameters)
         row = GraphQLMapper(result.metadata).map(result.records)[0]
         self.assertEqual(1, row['id'])
-        self.assertEqual('2021-03-03T15:51:48.082288Z', row['created_at'])
+        self.assertEqual('2021-03-03T15:51:48.082288Z', row['tz_notimezone'])
         self.assertEqual('first row', row['a_name'])
         doc = row['doc']
         self.assertEqual('string1', doc['string_vale'])
@@ -64,7 +64,7 @@ class TestDataAPI(unittest.TestCase):
     def test_transaction(self):
         transaction = self.data_client.begin_transaction()
         transaction.execute('''
-            INSERT INTO aurora_data_api_test (id, a_name, doc, num_numeric, num_float, num_integer, ts, created_at) 
+            INSERT INTO aurora_data_api_test (id, a_name, doc, num_numeric, num_float, num_integer, ts, tz_notimezone) 
             VALUES (3, 'first row', '{"string_vale": "string1", "int_value": 1, "float_value": 1.11}', 1.12345, 1.11, 1, '1976-11-02 08:45:00 UTC', '2021-03-03 15:51:48.082288');
         ''')
         before_commit = self.data_client.execute("select * from aurora_data_api_test where id = 3")
