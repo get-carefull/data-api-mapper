@@ -20,6 +20,10 @@ class ParameterBuilder:
         self.result.append(self.build_entry_map(name, value, 'stringValue'))
         return self
 
+    def add_boolean(self, name, value):
+        self.result.append(self.build_entry_map(name, value, 'booleanValue'))
+        return self
+
     def build(self):
         return self.result
 
