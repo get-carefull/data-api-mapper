@@ -64,7 +64,7 @@ class TestDataAPI(unittest.TestCase):
         self.assertEqual(1, row['num_integer'])
 
     def test_data_api_types(self):
-        sql = "INSERT INTO aurora_data_api_test (id, a_name, doc, num_numeric, num_float, num_integer, ts, tz_notimezone, field_null, field_boolean) values (4,:name, :doc, 1.12345, 1.11,:num_integer, '1976-11-02 08:45:00 UTC', '2021-03-03 15:51:48.082288', :field_null, :field_boolean) RETURNING id"
+        sql = "INSERT INTO aurora_data_api_test (a_name, doc, num_numeric, num_float, num_integer, ts, tz_notimezone, field_null, field_boolean) values (:name, :doc, 1.12345, 1.11,:num_integer, '1976-11-02 08:45:00 UTC', '2021-03-03 15:51:48.082288', :field_null, :field_boolean) RETURNING id"
         parameters = ParameterBuilder().add_string("name", 'prueba').add_null('field_null').add_json('doc', {'key':'as'}).add_long('num_integer',1).add_boolean('field_boolean', True).build()
         result = self.data_client.execute(sql, parameters)
         result_map = GraphQLMapper(result.metadata).map(result.records)
