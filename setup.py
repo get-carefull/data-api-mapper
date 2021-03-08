@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name='data-api-mapper',
-    version='0.0.7',
+    version='0.0.8',
     url='https://github.com/get-carefull/data-api-mapper',
     author='Flavio Oliveri',
     author_email='flavio.oliveri@gmail.com',
