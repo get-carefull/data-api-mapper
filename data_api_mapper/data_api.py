@@ -28,8 +28,8 @@ class ParameterBuilder:
         self.result.append(self.build_entry_map(name, value, 'booleanValue'))
         return self
 
-    def add_null(self, name, value):
-        self.result.append(self.build_entry_map(name, value, 'isNull'))
+    def add_null(self, name):
+        self.result.append(self.build_entry_map(name, True, 'isNull'))
         return self
 
     def add_json(self, name, value):
