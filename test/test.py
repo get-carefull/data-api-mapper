@@ -71,6 +71,7 @@ class TestDataAPI(unittest.TestCase):
         parameters = ParameterBuilder().add_long("id", result_map[0]['id']).build()
         result = self.data_client.execute("select * from aurora_data_api_test where id =:id", parameters)
         row = GraphQLMapper(result.metadata).map(result.records)[0]
+        self.assertEqual('prueba', row['a_name'])
         self.assertEqual({'key':'as'}, row['doc'])
         self.assertEqual(1, row['num_integer'])
         self.assertEqual(True, row['field_boolean'])
