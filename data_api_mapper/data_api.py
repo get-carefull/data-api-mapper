@@ -1,3 +1,4 @@
+import json
 from dataclasses import dataclass
 from typing import List, Dict, Any
 from data_api_mapper.converters import GRAPHQL_CONVERTERS
@@ -9,8 +10,11 @@ class ParameterBuilder:
         self.result = []
 
     @staticmethod
-    def build_entry_map(name, value, type):
-        return {'name': name, 'value': {type: value}}
+    def build_entry_map(name, value, type, type_hint=None):
+        if type_hint:
+            return {'name': name, 'value': {type: value}, 'typeHint': type_hint}
+        else:
+            return {'name': name, 'value': {type: value}}
 
     def add_long(self, name, value):
         self.result.append(self.build_entry_map(name, value, 'longValue'))
@@ -22,6 +26,14 @@ class ParameterBuilder:
 
     def add_boolean(self, name, value):
         self.result.append(self.build_entry_map(name, value, 'booleanValue'))
+        return self
+
+    def add_null(self, name, value):
+        self.result.append(self.build_entry_map(name, value, 'isNull'))
+        return self
+
+    def add_json(self, name, value):
+        self.result.append(self.build_entry_map(name, json.dumps(value), 'stringValue', 'JSON'))
         return self
 
     def build(self):
