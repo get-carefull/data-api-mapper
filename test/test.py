@@ -37,7 +37,9 @@ class TestDataAPI(unittest.TestCase):
                 num_float float,
                 num_integer integer,
                 ts TIMESTAMP WITH TIME ZONE,
-                field_null TEXT NULL,
+                field_string_null TEXT NULL,
+                field_long_null integer NULL,
+                field_doc_null JSONB NULL,
                 field_boolean BOOLEAN NULL,
                 tz_notimezone TIMESTAMP
             );
@@ -64,8 +66,16 @@ class TestDataAPI(unittest.TestCase):
         self.assertEqual(1, row['num_integer'])
 
     def test_data_api_types(self):
-        sql = "INSERT INTO aurora_data_api_test (a_name, doc, num_numeric, num_float, num_integer, ts, tz_notimezone, field_null, field_boolean) values (:name, :doc, 1.12345, 1.11,:num_integer, '1976-11-02 08:45:00 UTC', '2021-03-03 15:51:48.082288', :field_null, :field_boolean) RETURNING id"
-        parameters = ParameterBuilder().add_string("name", 'prueba').add_null('field_null').add_json('doc', {'key':'as'}).add_long('num_integer',1).add_boolean('field_boolean', True).build()
+        sql = "INSERT INTO aurora_data_api_test (a_name, doc, num_numeric, num_float, num_integer, ts, tz_notimezone, field_string_null, field_boolean, field_long_null, field_doc_null) values (:name, :doc, 1.12345, 1.11,:num_integer, '1976-11-02 08:45:00 UTC', '2021-03-03 15:51:48.082288', :field_string_null, :field_boolean, :field_long_null, :field_json_null) RETURNING id"
+        parameters = ParameterBuilder()\
+            .add_string("name", 'prueba')\
+            .add_string_or_null('field_string_null', None)\
+            .add_json('doc', {'key':'as'})\
+            .add_long('num_integer', 1)\
+            .add_boolean('field_boolean', True) \
+            .add_long_or_null('field_long_null', None) \
+            .add_json_or_null('field_json_null', None)\
+            .build()
         result = self.data_client.execute(sql, parameters)
         result_map = GraphQLMapper(result.metadata).map(result.records)
         parameters = ParameterBuilder().add_long("id", result_map[0]['id']).build()
@@ -75,7 +85,10 @@ class TestDataAPI(unittest.TestCase):
         self.assertEqual({'key':'as'}, row['doc'])
         self.assertEqual(1, row['num_integer'])
         self.assertEqual(True, row['field_boolean'])
-        self.assertEqual(None, row['field_null'])
+        self.assertEqual(None, row['field_string_null'])
+        self.assertEqual(None, row['field_long_null'])
+        self.assertEqual(None, row['field_doc_null'])
+
 
     def test_transaction(self):
         transaction = self.data_client.begin_transaction()
