@@ -1,3 +1,4 @@
+import ast
 import json
 import os
 import unittest
@@ -51,7 +52,7 @@ class TestDataAPI(unittest.TestCase):
         cls.data_client = data_client
 
     def test_types(self):
-        parameters = ParameterBuilder().add_long("id", 1).build()
+        parameters = ParameterBuilder().add("id", 1).build()
         result = self.data_client.execute("select * from aurora_data_api_test where id =:id", parameters)
         row = GraphQLMapper(result.metadata).map(result.records)[0]
         self.assertEqual(1, row['id'])
@@ -66,19 +67,20 @@ class TestDataAPI(unittest.TestCase):
         self.assertEqual(1, row['num_integer'])
 
     def test_data_api_types(self):
-        sql = "INSERT INTO aurora_data_api_test (a_name, doc, num_numeric, num_float, num_integer, ts, tz_notimezone, field_string_null, field_boolean, field_long_null, field_doc_null) values (:name, :doc, 1.12345, 1.11,:num_integer, '1976-11-02 08:45:00 UTC', '2021-03-03 15:51:48.082288', :field_string_null, :field_boolean, :field_long_null, :field_json_null) RETURNING id"
+        sql = "INSERT INTO aurora_data_api_test (a_name, doc, num_numeric, num_float, num_integer, ts, tz_notimezone, field_string_null, field_boolean, field_long_null, field_doc_null) values (:name, :doc, :num_float, 1.11,:num_integer, '1976-11-02 08:45:00 UTC', '2021-03-03 15:51:48.082288', :field_string_null, :field_boolean, :field_long_null, :field_json_null) RETURNING id"
         parameters = ParameterBuilder()\
-            .add_string("name", 'prueba')\
-            .add_string_or_null('field_string_null', None)\
-            .add_json('doc', {'key':'as'})\
-            .add_long('num_integer', 1)\
-            .add_boolean('field_boolean', True) \
-            .add_long_or_null('field_long_null', None) \
-            .add_json_or_null('field_json_null', None)\
+            .add("name", 'prueba')\
+            .add('field_string_null', None)\
+            .add('doc', {'key':'as'})\
+            .add('num_integer', 1) \
+            .add('num_float', 1.123) \
+            .add('field_boolean', True) \
+            .add('field_long_null', None) \
+            .add('field_json_null', None)\
             .build()
         result = self.data_client.execute(sql, parameters)
         result_map = GraphQLMapper(result.metadata).map(result.records)
-        parameters = ParameterBuilder().add_long("id", result_map[0]['id']).build()
+        parameters = ParameterBuilder().add("id", result_map[0]['id']).build()
         result = self.data_client.execute("select * from aurora_data_api_test where id =:id", parameters)
         row = GraphQLMapper(result.metadata).map(result.records)[0]
         self.assertEqual('prueba', row['a_name'])
@@ -123,6 +125,18 @@ class TestAppSync(unittest.TestCase):
         self.assertEqual("TYPENAME", result[0]['__typename'])
         self.assertEqual("2021-03-03 15:51:48.082288", result[0]['pruebaCampo'])
         self.assertEqual(9771, result[0]['idOk'])
+
+
+class TestParameterBuilder(unittest.TestCase):
+    def test_parameter_builder(self):
+        self.assertEqual('dast', ParameterBuilder().add('string', 'dast').build()[0]['value']['stringValue'])
+        self.assertEqual(1, ParameterBuilder().add('long', 1).build()[0]['value']['longValue'])
+        self.assertEqual(1.123, ParameterBuilder().add('double', 1.123).build()[0]['value']['doubleValue'])
+        self.assertEqual(True, ParameterBuilder().add('none', None).build()[0]['value']['isNull'])
+        self.assertEqual(False, ParameterBuilder().add('boolean', False).build()[0]['value']['booleanValue'])
+        parameter_json = ParameterBuilder().add('json', {'key':'as'}).build()[0]
+        self.assertEqual('JSON', parameter_json['typeHint'])
+        self.assertEqual({'key':'as'}, ast.literal_eval(parameter_json['value']['stringValue']))
 
 
 if __name__ == '__main__':
