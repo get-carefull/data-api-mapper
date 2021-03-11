@@ -2,6 +2,8 @@ import ast
 import json
 import os
 import unittest
+from datetime import datetime
+from decimal import Decimal
 
 import boto3
 from dotenv import load_dotenv
@@ -132,12 +134,44 @@ class TestParameterBuilder(unittest.TestCase):
         self.assertEqual('dast', ParameterBuilder().add('string', 'dast').build()[0]['value']['stringValue'])
         self.assertEqual(1, ParameterBuilder().add('long', 1).build()[0]['value']['longValue'])
         self.assertEqual(1.123, ParameterBuilder().add('double', 1.123).build()[0]['value']['doubleValue'])
-        self.assertEqual(True, ParameterBuilder().add('none', None).build()[0]['value']['isNull'])
         self.assertEqual(False, ParameterBuilder().add('boolean', False).build()[0]['value']['booleanValue'])
         parameter_json = ParameterBuilder().add('json', {'key':'as'}).build()[0]
         self.assertEqual('JSON', parameter_json['typeHint'])
         self.assertEqual({'key':'as'}, ast.literal_eval(parameter_json['value']['stringValue']))
+        date_object = ParameterBuilder().add('date', datetime(2017, 6, 11, 10, 20, 30).date()).build()[0]
+        self.assertEqual('DATE', date_object['typeHint'])
+        self.assertEqual('2017-06-11', date_object['value']['stringValue'])
+        datetime_object = ParameterBuilder().add('datetime', datetime(2017, 6, 11, 10, 20, 30, 100)).build()[0]
+        self.assertEqual('TIMESTAMP', datetime_object['typeHint'])
+        self.assertEqual('2017-06-11 10:20:30.000100', datetime_object['value']['stringValue'])
+        decimal = ParameterBuilder().add('decimal', Decimal(1.123412123123213035569278872571885585784912109375)).build()[0]
+        self.assertEqual('DECIMAL', decimal['typeHint'])
+        self.assertEqual('1.123412123123213035569278872571885585784912109375', decimal['value']['stringValue'])
 
+    def test_parameter_builder_with_exception_by_none(self):
+        with self.assertRaises(Exception) as context:
+            ParameterBuilder().add('string', None).build()[0]['value']['stringValue']
+
+        self.assertEqual('The data type of the value does not match against any of the expected', str(context.exception))
+
+    def test_parameter_builder_with_null(self):
+        self.assertEqual('dast', ParameterBuilder().add_or_null('string', 'dast').build()[0]['value']['stringValue'])
+        self.assertEqual(1, ParameterBuilder().add_or_null('long', 1).build()[0]['value']['longValue'])
+        self.assertEqual(1.123, ParameterBuilder().add_or_null('double', 1.123).build()[0]['value']['doubleValue'])
+        self.assertEqual(False, ParameterBuilder().add_or_null('boolean', False).build()[0]['value']['booleanValue'])
+        parameter_json = ParameterBuilder().add_or_null('json', {'key':'as'}).build()[0]
+        self.assertEqual('JSON', parameter_json['typeHint'])
+        self.assertEqual({'key':'as'}, ast.literal_eval(parameter_json['value']['stringValue']))
+        date_object = ParameterBuilder().add_or_null('date', datetime(2017, 6, 11, 10, 20, 30).date()).build()[0]
+        self.assertEqual('DATE', date_object['typeHint'])
+        self.assertEqual('2017-06-11', date_object['value']['stringValue'])
+        datetime_object = ParameterBuilder().add_or_null('datetime', datetime(2017, 6, 11, 10, 20, 30)).build()[0]
+        self.assertEqual('TIMESTAMP', datetime_object['typeHint'])
+        self.assertEqual('2017-06-11 10:20:30', datetime_object['value']['stringValue'])
+        decimal = ParameterBuilder().add_or_null('decimal', Decimal(1.123412123123213035569278872571885585784912109375)).build()[0]
+        self.assertEqual('DECIMAL', decimal['typeHint'])
+        self.assertEqual('1.123412123123213035569278872571885585784912109375', decimal['value']['stringValue'])
+        self.assertEqual(True, ParameterBuilder().add_or_null('string', None).build()[0]['value']['isNull'])
 
 if __name__ == '__main__':
     unittest.main()

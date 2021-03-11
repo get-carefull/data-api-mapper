@@ -1,5 +1,7 @@
 import json
 from dataclasses import dataclass
+from datetime import date, datetime
+from decimal import Decimal
 from typing import List, Dict, Any
 from data_api_mapper.converters import GRAPHQL_CONVERTERS
 
@@ -29,14 +31,28 @@ class ParameterBuilder:
         elif isinstance(value, dict):
             self.result.append(self.build_entry_map(name, json.dumps(value), 'stringValue', 'JSON'))
             return self
-        elif value is None:
-            self.result.append(self.build_entry_map(name, True, 'isNull'))
-            return self
         elif isinstance(value, float):
             self.result.append(self.build_entry_map(name, value, 'doubleValue'))
             return self
+        elif isinstance(value, datetime):
+            self.result.append(self.build_entry_map(name, str(value), 'stringValue', 'TIMESTAMP'))
+            return self
+        elif isinstance(value, date):
+            self.result.append(self.build_entry_map(name, str(value), 'stringValue', 'DATE'))
+            return self
+        elif isinstance(value, Decimal):
+            self.result.append(self.build_entry_map(name, str(value), 'stringValue', 'DECIMAL'))
+            return self
         else:
             raise ValueError('The data type of the value does not match against any of the expected')
+
+    def add_or_null(self, name, value):
+        if value is None:
+            self.result.append(self.build_entry_map(name, True, 'isNull'))
+            return self
+        else:
+            self.add(name, value)
+            return self
 
     def build(self):
         return self.result
