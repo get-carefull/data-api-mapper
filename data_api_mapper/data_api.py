@@ -1,5 +1,7 @@
 import json
 from dataclasses import dataclass
+from datetime import date, datetime
+from decimal import Decimal
 from typing import List, Dict, Any
 from data_api_mapper.converters import GRAPHQL_CONVERTERS
 
@@ -11,30 +13,46 @@ class ParameterBuilder:
 
     @staticmethod
     def build_entry_map(name, value, type, type_hint=None):
-        if type_hint:
+        if type_hint is not None:
             return {'name': name, 'value': {type: value}, 'typeHint': type_hint}
         else:
             return {'name': name, 'value': {type: value}}
 
-    def add_long(self, name, value):
-        self.result.append(self.build_entry_map(name, value, 'longValue'))
-        return self
+    def add(self, name, value):
+        if isinstance(value, str):
+            self.result.append(self.build_entry_map(name, value, 'stringValue'))
+            return self
+        elif isinstance(value, bool):
+            self.result.append(self.build_entry_map(name, value, 'booleanValue'))
+            return self
+        elif isinstance(value, int):
+            self.result.append(self.build_entry_map(name, value, 'longValue'))
+            return self
+        elif isinstance(value, dict):
+            self.result.append(self.build_entry_map(name, json.dumps(value), 'stringValue', 'JSON'))
+            return self
+        elif isinstance(value, float):
+            self.result.append(self.build_entry_map(name, value, 'doubleValue'))
+            return self
+        elif isinstance(value, datetime):
+            self.result.append(self.build_entry_map(name, str(value), 'stringValue', 'TIMESTAMP'))
+            return self
+        elif isinstance(value, date):
+            self.result.append(self.build_entry_map(name, str(value), 'stringValue', 'DATE'))
+            return self
+        elif isinstance(value, Decimal):
+            self.result.append(self.build_entry_map(name, str(value), 'stringValue', 'DECIMAL'))
+            return self
+        else:
+            raise ValueError('The data type of the value does not match against any of the expected')
 
-    def add_string(self, name, value):
-        self.result.append(self.build_entry_map(name, value, 'stringValue'))
-        return self
-
-    def add_boolean(self, name, value):
-        self.result.append(self.build_entry_map(name, value, 'booleanValue'))
-        return self
-
-    def add_null(self, name):
-        self.result.append(self.build_entry_map(name, True, 'isNull'))
-        return self
-
-    def add_json(self, name, value):
-        self.result.append(self.build_entry_map(name, json.dumps(value), 'stringValue', 'JSON'))
-        return self
+    def add_or_null(self, name, value):
+        if value is None:
+            self.result.append(self.build_entry_map(name, True, 'isNull'))
+            return self
+        else:
+            self.add(name, value)
+            return self
 
     def build(self):
         return self.result
