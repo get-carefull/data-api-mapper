@@ -54,6 +54,11 @@ class ParameterBuilder:
             self.add(name, value)
             return self
 
+    def add_dictionary(self, a_dict):
+        for x in a_dict.keys():
+            self.add(x, a_dict[x])
+        return self
+
     def build(self):
         return self.result
 

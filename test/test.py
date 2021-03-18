@@ -173,5 +173,16 @@ class TestParameterBuilder(unittest.TestCase):
         self.assertEqual('1.123412123123213035569278872571885585784912109375', decimal['value']['stringValue'])
         self.assertEqual(True, ParameterBuilder().add_or_null('string', None).build()[0]['value']['isNull'])
 
+    def test_add_dictionary(self):
+        a_dict = {
+            'a_string': 'hello',
+            'an_int': 4
+        }
+        params = ParameterBuilder().add_dictionary(a_dict).build()
+        self.assertEqual('a_string', params[0]['name'])
+        self.assertEqual('hello', params[0]['value']['stringValue'])
+        self.assertEqual('an_int', params[1]['name'])
+        self.assertEqual(4, params[1]['value']['longValue'])
+
 if __name__ == '__main__':
     unittest.main()
