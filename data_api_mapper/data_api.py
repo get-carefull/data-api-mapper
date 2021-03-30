@@ -31,6 +31,9 @@ class ParameterBuilder:
         elif isinstance(value, dict):
             self.result.append(self.build_entry_map(name, json.dumps(value), 'stringValue', 'JSON'))
             return self
+        elif isinstance(value, list):
+            self.result.append(self.build_entry_map(name, json.dumps(value), 'stringValue', 'JSON'))
+            return self
         elif isinstance(value, float):
             self.result.append(self.build_entry_map(name, value, 'doubleValue'))
             return self
