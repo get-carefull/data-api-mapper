@@ -143,6 +143,9 @@ class TestParameterBuilder(unittest.TestCase):
         parameter_json = ParameterBuilder().add('json', {'key':'as'}).build()[0]
         self.assertEqual('JSON', parameter_json['typeHint'])
         self.assertEqual({'key':'as'}, ast.literal_eval(parameter_json['value']['stringValue']))
+        parameter_json_list = ParameterBuilder().add('json', ['MANAGER', 'PRUEBA']).build()[0]
+        self.assertEqual('JSON', parameter_json_list['typeHint'])
+        self.assertEqual(['MANAGER', 'PRUEBA'], ast.literal_eval(parameter_json_list['value']['stringValue']))
         date_object = ParameterBuilder().add('date', datetime(2017, 6, 11, 10, 20, 30).date()).build()[0]
         self.assertEqual('DATE', date_object['typeHint'])
         self.assertEqual('2017-06-11', date_object['value']['stringValue'])
