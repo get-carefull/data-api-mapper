@@ -68,17 +68,22 @@ class TestDataAPI(unittest.TestCase):
         self.assertEqual(1.11, row['num_float'])
         self.assertEqual(1, row['num_integer'])
 
+    def test_not_table(self):
+        result = self.data_client.execute("select count(*) from aurora_data_api_test")
+        row = DictionaryMapper(result.metadata).map(result.records)[0]
+        self.assertTrue('count' in row)
+
     def test_data_api_types(self):
         sql = "INSERT INTO aurora_data_api_test (a_name, doc, num_numeric, num_float, num_integer, ts, tz_notimezone, field_string_null, field_boolean, field_long_null, field_doc_null) values (:name, :doc, :num_float, 1.11,:num_integer, '1976-11-02 08:45:00 UTC', '2021-03-03 15:51:48.082288', :field_string_null, :field_boolean, :field_long_null, :field_json_null) RETURNING id"
         parameters = ParameterBuilder()\
             .add("name", 'prueba')\
-            .add('field_string_null', None)\
+            .add_or_null('field_string_null', None)\
             .add('doc', {'key':'as'})\
             .add('num_integer', 1) \
             .add('num_float', 1.123) \
             .add('field_boolean', True) \
-            .add('field_long_null', None) \
-            .add('field_json_null', None)\
+            .add_or_null('field_long_null', None) \
+            .add_or_null('field_json_null', None)\
             .build()
         result = self.data_client.execute(sql, parameters)
         result_map = GraphQLMapper(result.metadata).map(result.records)

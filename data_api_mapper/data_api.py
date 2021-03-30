@@ -86,7 +86,9 @@ class QueryMetadata:
 
     def field_names(self):
         main_table = self.main_table
-        return [x.name if x.table_name == main_table else f'{x.table_name}_{x.name}' for x in self.rows]
+        return [x.name if x.table_name == main_table or not x.table_name
+                else f'{x.table_name}_{x.name}'
+                for x in self.rows]
 
     def converters(self, converter_map) -> List:
         return [converter_map.get(x.type_name, None) for x in self.rows]
