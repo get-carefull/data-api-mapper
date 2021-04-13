@@ -2,13 +2,14 @@ import ast
 import json
 import os
 import unittest
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 
 import boto3
 from dotenv import load_dotenv
 
 from data_api_mapper.appsync import AppsyncEvent, CamelSnakeConverter
+from data_api_mapper.converters import TimestampzToDatetimeUTC
 from data_api_mapper.data_api import DataAPIClient, ParameterBuilder, GraphQLMapper, DictionaryMapper
 
 load_dotenv()
@@ -52,6 +53,16 @@ class TestDataAPI(unittest.TestCase):
         """
         data_client.execute(sql=initial_sql, wrap_result=False)
         cls.data_client = data_client
+
+    def test_datetime(self):
+        self.data_client.execute('''
+            INSERT INTO aurora_data_api_test (id, a_name, doc, num_numeric, num_float, num_integer, ts, tz_notimezone) 
+            VALUES (20, 'first row', '{"string_vale": "string1", "int_value": 1, "float_value": 1.11}', 1.12345, 1.11, 1, '1976-11-02 08:45:00 UTC', '2021-03-03 15:51:48.082456');
+        ''', wrap_result=False)
+        result = self.data_client.execute("select ts, tz_notimezone from aurora_data_api_test where  id = 20")
+        to_test = GraphQLMapper(result.metadata).map(result.records)[0]
+        self.assertEqual(to_test['ts'], '1976-11-02T08:45:00Z')
+        self.assertEqual(to_test['tz_notimezone'], '2021-03-03T15:51:48.082456Z')
 
     def test_types(self):
         parameters = ParameterBuilder().add("id", 1).build()
@@ -191,6 +202,26 @@ class TestParameterBuilder(unittest.TestCase):
         self.assertEqual('hello', params[0]['value']['stringValue'])
         self.assertEqual('an_int', params[1]['name'])
         self.assertEqual(4, params[1]['value']['longValue'])
+
+
+class TimestampzToDatetimeUTCTest(unittest.TestCase):
+
+    converter = TimestampzToDatetimeUTC()
+
+    def test_converter_missing_millis(self):
+        result = self.converter.convert('2021-03-22 23:52:48.650')
+        expected = datetime(2021, 3, 22, 23, 52, 48, 650000, tzinfo=timezone.utc)
+        self.assertEqual(expected, result)
+
+    def test_converter_missing_millis2(self):
+        result = self.converter.convert('2020-10-18 16:25:46.029')
+        expected = datetime(2020, 10, 18, 16, 25, 46, 29000, tzinfo=timezone.utc)
+        self.assertEqual(expected, result)
+
+    def test_converter_no_millis(self):
+        result = self.converter.convert('2020-10-18 16:25:46')
+        expected = datetime(2020, 10, 18, 16, 25, 46, 0, tzinfo=timezone.utc)
+        self.assertEqual(expected, result)
 
 if __name__ == '__main__':
     unittest.main()

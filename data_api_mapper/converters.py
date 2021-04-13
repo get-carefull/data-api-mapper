@@ -17,7 +17,8 @@ class TimestampzToAWSDateTime:
 class TimestampzToDatetimeUTC:
     @staticmethod
     def convert(value):
-        return datetime.fromisoformat(value).replace(tzinfo=timezone.utc)
+        padded = value.ljust(26, '0') if (len(value)) > 19 else value
+        return datetime.fromisoformat(padded).replace(tzinfo=timezone.utc)
 
 
 class NumericToFloat:
