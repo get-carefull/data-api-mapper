@@ -155,6 +155,20 @@ class DataAPIClient:
         )
         return QueryResponse.from_dict(response) if wrap_result else response
 
+    def execute_paginated(self, sql, parameters=(), page_size=100):
+        return self.paginate(QueryResponse([], None), sql, parameters, page_size, 0)
+
+    def paginate(self, result: QueryResponse, sql, parameters, page_size, offset):
+        sql_paginated = f'{sql} limit {page_size} offset {offset}'
+        response = self.execute(sql_paginated, parameters)
+        result.records.extend(response.records)
+        result.metadata = response.metadata
+        if len(response.records) < page_size:
+            return result
+        else:
+            return self.paginate(result, sql, parameters, page_size, offset + page_size)
+
+
     def begin_transaction(self):
         return Transaction(self.rds_client, self.secret_arn, self.cluster_arn, self.database_name)
 
