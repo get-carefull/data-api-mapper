@@ -2,7 +2,7 @@ import ast
 import json
 import os
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
 from decimal import Decimal
 
 import boto3
@@ -10,7 +10,8 @@ from dotenv import load_dotenv
 
 from data_api_mapper.appsync import AppsyncEvent, CamelSnakeConverter
 from data_api_mapper.converters import TimestampzToDatetimeUTC
-from data_api_mapper.data_api import DataAPIClient, ParameterBuilder, GraphQLMapper, DictionaryMapper
+from data_api_mapper import DataAPIClient
+from data_api_mapper.data_api import ParameterBuilder
 
 load_dotenv()
 
@@ -45,87 +46,134 @@ class TestDataAPI(unittest.TestCase):
                 field_long_null integer NULL,
                 field_doc_null JSONB NULL,
                 field_boolean BOOLEAN NULL,
-                tz_notimezone TIMESTAMP
+                tz_notimezone TIMESTAMP,
+                a_date DATE
             );
-            INSERT INTO aurora_data_api_test (a_name, doc, num_numeric, num_float, num_integer, ts, tz_notimezone)
-            VALUES ('first row', '{"string_vale": "string1", "int_value": 1, "float_value": 1.11}', 1.12345, 1.11, 1, '1976-11-02 08:45:00 UTC', '2021-03-03 15:51:48.082288');
-            VALUES ('second row', '{"string_vale": "string2", "int_value": 2, "float_value": 2.22}', 2.22, 2.22, 2, '1976-11-02 08:45:00 UTC', '2021-03-03 15:51:48.082288');
+            INSERT INTO aurora_data_api_test (a_name, doc, num_numeric, num_float, num_integer, ts, tz_notimezone, a_date)
+            VALUES ('first row', '{"string_vale": "string1", "int_value": 1, "float_value": 1.11}', 1.12345, 1.11, 1, '1976-11-02 08:45:00 UTC', '2021-03-03 15:51:48.082288', '1976-11-02');
+            VALUES ('second row', '{"string_vale": "string2", "int_value": 2, "float_value": 2.22}', 2.22, 2.22, 2, '1976-11-02 08:45:00 UTC', '2021-03-03 15:51:48.082288', '1976-11-02');
         """
-        data_client.execute(sql=initial_sql, wrap_result=False)
+        data_client.query(sql=initial_sql)
         cls.data_client = data_client
 
     def test_datetime(self):
-        self.data_client.execute('''
-            INSERT INTO aurora_data_api_test (id, a_name, doc, num_numeric, num_float, num_integer, ts, tz_notimezone) 
-            VALUES (20, 'first row', '{"string_vale": "string1", "int_value": 1, "float_value": 1.11}', 1.12345, 1.11, 1, '1976-11-02 08:45:00 UTC', '2021-03-03 15:51:48.082456');
-        ''', wrap_result=False)
-        result = self.data_client.execute("select ts, tz_notimezone from aurora_data_api_test where  id = 20")
-        to_test = GraphQLMapper(result.metadata).map(result.records)[0]
-        self.assertEqual(to_test['ts'], '1976-11-02T08:45:00Z')
-        self.assertEqual(to_test['tz_notimezone'], '2021-03-03T15:51:48.082456Z')
+        self.data_client.query('''
+            INSERT INTO aurora_data_api_test (id, a_name, doc, num_numeric, num_float, num_integer, ts, tz_notimezone, a_date) 
+            VALUES (20, 'first row', '{"string_vale": "string1", "int_value": 1, "float_value": 1.11}', 1.12345, 1.11, 1, '1976-11-02 08:45:00 UTC', '2021-03-03 15:51:48.082456', '1976-11-02');
+        ''')
+        result = self.data_client.query("select ts, tz_notimezone, a_date from aurora_data_api_test where  id = 20")
+        to_test = result[0]
+        self.assertEqual(to_test['ts'], datetime.fromisoformat('1976-11-02T08:45:00+00:00'))
+        self.assertEqual(to_test['tz_notimezone'], datetime.fromisoformat('2021-03-03T15:51:48.082456+00:00'))
+        self.assertEqual(to_test['a_date'], date(1976, 11, 2))
 
     def test_types(self):
-        parameters = ParameterBuilder().add("id", 1).build()
-        result = self.data_client.execute("select * from aurora_data_api_test where id =:id", parameters)
-        row = GraphQLMapper(result.metadata).map(result.records)[0]
+        result = self.data_client.query("select * from aurora_data_api_test where id =:id", {'id': 1})
+        row = result[0]
         self.assertEqual(1, row['id'])
-        self.assertEqual('2021-03-03T15:51:48.082288Z', row['tz_notimezone'])
+        self.assertEqual(datetime.fromisoformat('2021-03-03T15:51:48.082288+00:00'), row['tz_notimezone'])
         self.assertEqual('first row', row['a_name'])
         doc = row['doc']
         self.assertEqual('string1', doc['string_vale'])
         self.assertEqual(1, doc['int_value'])
         self.assertEqual(1.11, doc['float_value'])
-        self.assertEqual(1.12345, row['num_numeric'])
+        self.assertEqual(Decimal('1.12345'), row['num_numeric'])
         self.assertEqual(1.11, row['num_float'])
         self.assertEqual(1, row['num_integer'])
+        self.assertEqual(date(1976, 11, 2), row['a_date'])
 
     def test_not_table(self):
-        result = self.data_client.execute("select count(*) from aurora_data_api_test")
-        row = DictionaryMapper(result.metadata).map(result.records)[0]
+        result = self.data_client.query("select count(*) from aurora_data_api_test")
+        row = result[0]
         self.assertTrue('count' in row)
 
     def test_data_api_types(self):
-        sql = "INSERT INTO aurora_data_api_test (a_name, doc, num_numeric, num_float, num_integer, ts, tz_notimezone, field_string_null, field_boolean, field_long_null, field_doc_null) values (:name, :doc, :num_float, 1.11,:num_integer, '1976-11-02 08:45:00 UTC', '2021-03-03 15:51:48.082288', :field_string_null, :field_boolean, :field_long_null, :field_json_null) RETURNING id"
-        parameters = ParameterBuilder()\
-            .add("name", 'prueba')\
-            .add_or_null('field_string_null', None)\
-            .add('doc', {'key':'as'})\
-            .add('num_integer', 1) \
-            .add('num_float', 1.123) \
-            .add('field_boolean', True) \
-            .add_or_null('field_long_null', None) \
-            .add_or_null('field_json_null', None)\
-            .build()
-        result = self.data_client.execute(sql, parameters)
-        result_map = GraphQLMapper(result.metadata).map(result.records)
-        parameters = ParameterBuilder().add("id", result_map[0]['id']).build()
-        result = self.data_client.execute("select * from aurora_data_api_test where id =:id", parameters)
-        row = GraphQLMapper(result.metadata).map(result.records)[0]
+        sql = "INSERT INTO aurora_data_api_test (a_name, doc, num_numeric, num_float, num_integer, ts, tz_notimezone, field_string_null, field_boolean, field_long_null, field_doc_null, a_date) values (:name, :doc, :num_numeric, :num_float ,:num_integer, '1976-11-02 08:45:00 UTC', '2021-03-03 15:51:48.082288', :field_string_null, :field_boolean, :field_long_null, :field_doc_null, :a_date) RETURNING id"
+        parameters = [
+            {'name': 'name', 'value': 'prueba'},
+            {'name': 'field_string_null', 'value': None, 'allow_null': True},
+            {'name': 'doc', 'value': {'num_int': 1, 'num_float': 45.6, 'somestring': 'hello', 'a_date': date(1976, 11, 2)}},
+            {'name': 'num_integer', 'value': 1},
+            {'name': 'num_numeric', 'value': Decimal('100.7654')},
+            {'name': 'num_float', 'value': 10.123},
+            {'name': 'field_boolean', 'value': True},
+            {'name': 'field_long_null', 'value': None, 'allow_null': True},
+            {'name': 'field_doc_null', 'value': None, 'allow_null': True},
+            {'name': 'a_date', 'value': date(1976, 11, 2)}
+        ]
+        result_map = self.data_client.query(sql, parameters)
+        parameters = {"id": result_map[0]['id']}
+        result = self.data_client.query("select * from aurora_data_api_test where id = :id", parameters)
+        row = result[0]
         self.assertEqual('prueba', row['a_name'])
-        self.assertEqual({'key':'as'}, row['doc'])
+        self.assertEqual({'num_int': 1, 'num_float': 45.6, 'somestring': 'hello', 'a_date': '1976-11-02'}, row['doc'])
         self.assertEqual(1, row['num_integer'])
+        self.assertEqual(10.123, row['num_float'])
+        self.assertEqual(Decimal('100.7654'), row['num_numeric'])
         self.assertEqual(True, row['field_boolean'])
         self.assertEqual(None, row['field_string_null'])
         self.assertEqual(None, row['field_long_null'])
         self.assertEqual(None, row['field_doc_null'])
+        self.assertEqual(date(1976, 11, 2), row['a_date'])
 
+    def test_hint(self):
+        a_json = {'first': 1, 'second': 'string'}
+        decimal_str = '10.22332'
+        parameters = [{'name': 'a_json', 'value': json.dumps(a_json), 'cast': 'JSON'},
+                      {'name': 'a_decimal', 'value': decimal_str, 'cast': 'DECIMAL'}]
+        self.data_client.query('''
+            INSERT INTO aurora_data_api_test (id, num_numeric, doc) 
+            VALUES (101, :a_decimal, :a_json)
+        ''', parameters)
+        parameters = {"id": 101}
+        result = self.data_client.query("select * from aurora_data_api_test where id =:id", parameters)
+        row = result[0]
+        self.assertEqual(a_json, row['doc'])
+        self.assertEqual(Decimal(decimal_str), row['num_numeric'])
 
     def test_transaction(self):
         transaction = self.data_client.begin_transaction()
-        transaction.execute('''
-            INSERT INTO aurora_data_api_test (id, a_name, doc, num_numeric, num_float, num_integer, ts, tz_notimezone) 
-            VALUES (3, 'first row', '{"string_vale": "string1", "int_value": 1, "float_value": 1.11}', 1.12345, 1.11, 1, '1976-11-02 08:45:00 UTC', '2021-03-03 15:51:48.082288');
+        transaction.query('''
+            INSERT INTO aurora_data_api_test (id, a_name, doc, num_numeric, num_float, num_integer, ts, tz_notimezone)
+            VALUES (345, 'first row', '{"string_vale": "string1", "int_value": 1, "float_value": 1.11}', 1.12345, 1.11, 1, '1976-11-02 08:45:00 UTC', '2021-03-03 15:51:48.082288');
         ''')
-        before_commit = self.data_client.execute("select * from aurora_data_api_test where id = 3")
-        self.assertEqual(0, len(before_commit.records))
+        inside_transaction = transaction.query("select * from aurora_data_api_test where id = 345")
+        self.assertEqual(1, len(inside_transaction))
+        transaction.query('''
+            INSERT INTO aurora_data_api_test (id, a_name, doc, num_numeric, num_float, num_integer, ts, tz_notimezone)
+            VALUES (346, 'first row', '{"string_vale": "string1", "int_value": 1, "float_value": 1.11}', 1.12345, 1.11, 1, '1976-11-02 08:45:00 UTC', '2021-03-03 15:51:48.082288');
+        ''')
+        inside_transaction = transaction.query("select * from aurora_data_api_test where id in (345,346)")
+        self.assertEqual(2, len(inside_transaction))
+        before_commit = self.data_client.query("select * from aurora_data_api_test where id in (345,346)")
+        self.assertEqual(0, len(before_commit))
         transaction.commit()
-        after_commit = self.data_client.execute("select * from aurora_data_api_test where id = 3")
-        self.assertEqual(1, len(after_commit.records))
+        after_commit = self.data_client.query("select * from aurora_data_api_test where id in (345,346)")
+        self.assertEqual(2, len(after_commit))
 
+    def test_transaction_rollback(self):
+        transaction = self.data_client.begin_transaction()
+        transaction.query('''
+            INSERT INTO aurora_data_api_test (id, a_name, doc, num_numeric, num_float, num_integer, ts, tz_notimezone)
+            VALUES (355, 'first row', '{"string_vale": "string1", "int_value": 1, "float_value": 1.11}', 1.12345, 1.11, 1, '1976-11-02 08:45:00 UTC', '2021-03-03 15:51:48.082288')
+        ''')
+        inside_transaction = transaction.query("select * from aurora_data_api_test where id = 355")
+        self.assertEqual(1, len(inside_transaction))
+        transaction.query('''
+            INSERT INTO aurora_data_api_test (id, a_name, doc, num_numeric, num_float, num_integer, ts, tz_notimezone)
+            VALUES (356, 'first row', '{"string_vale": "string1", "int_value": 1, "float_value": 1.11}', 1.12345, 1.11, 1, '1976-11-02 08:45:00 UTC', '2021-03-03 15:51:48.082288')
+        ''')
+        inside_transaction = transaction.query("select * from aurora_data_api_test where id in (355,356)")
+        self.assertEqual(2, len(inside_transaction))
+        before_rollback = self.data_client.query("select * from aurora_data_api_test where id in (355,356)")
+        self.assertEqual(0, len(before_rollback))
+        transaction.rollback()
+        after_rollback = self.data_client.query("select * from aurora_data_api_test where id in (355,356)")
+        self.assertEqual(0, len(after_rollback))
 
     @classmethod
     def tearDownClass(cls):
-        cls.data_client.execute('DROP TABLE IF EXISTS aurora_data_api_test', wrap_result=False)
+        cls.data_client.query('DROP TABLE IF EXISTS aurora_data_api_test')
 
 
 class TestAppSynEvent(unittest.TestCase):
