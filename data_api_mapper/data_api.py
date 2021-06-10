@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
 from typing import List, Dict, Any
-from data_api_mapper.converters import GRAPHQL_CONVERTERS
+from data_api_mapper.converters import POSTGRES_PYTHON_MAPPER
 
 
 class ParameterBuilder:
@@ -18,6 +18,12 @@ class ParameterBuilder:
         else:
             return {'name': name, 'value': {type: value}}
 
+    @staticmethod
+    def json_serial(obj):
+        if isinstance(obj, date):
+            return obj.isoformat()
+        raise TypeError("Type %s not serializable" % type(obj))
+
     def add(self, name, value):
         if isinstance(value, str):
             self.result.append(self.build_entry_map(name, value, 'stringValue'))
@@ -29,10 +35,10 @@ class ParameterBuilder:
             self.result.append(self.build_entry_map(name, value, 'longValue'))
             return self
         elif isinstance(value, dict):
-            self.result.append(self.build_entry_map(name, json.dumps(value), 'stringValue', 'JSON'))
+            self.result.append(self.build_entry_map(name, json.dumps(value, default=self.json_serial), 'stringValue', 'JSON'))
             return self
         elif isinstance(value, list):
-            self.result.append(self.build_entry_map(name, json.dumps(value), 'stringValue', 'JSON'))
+            self.result.append(self.build_entry_map(name, json.dumps(value, default=self.json_serial), 'stringValue', 'JSON'))
             return self
         elif isinstance(value, float):
             self.result.append(self.build_entry_map(name, value, 'doubleValue'))
@@ -65,6 +71,24 @@ class ParameterBuilder:
     def build(self):
         return self.result
 
+    def from_query(self, parameters) -> List:
+        if not parameters:
+            return []
+        if isinstance(parameters, list):
+            for param in parameters:
+                name = param['name']
+                value = param['value']
+                if 'allow_null' in param and param['allow_null']:
+                    self.add_or_null(name, value)
+                elif 'cast' in param:
+                    self.result.append({'name': name, 'value': {'stringValue': value}, 'typeHint': param['cast']})
+                else:
+                    self.add(name, value)
+        elif isinstance(parameters, dict):
+            self.add_dictionary(parameters)
+        return self.build()
+
+
 
 @dataclass
 class RowMetadata:
@@ -82,16 +106,8 @@ class RowMetadata:
 class QueryMetadata:
     rows: List[RowMetadata]
 
-    @property
-    def main_table(self):
-        names = [x.table_name for x in self.rows]
-        return max(names, key=names.count)
-
     def field_names(self):
-        main_table = self.main_table
-        return [x.name if x.table_name == main_table or not x.table_name
-                else f'{x.table_name}_{x.name}'
-                for x in self.rows]
+        return [x.name for x in self.rows]
 
     def converters(self, converter_map) -> List:
         return [converter_map.get(x.type_name, None) for x in self.rows]
@@ -147,6 +163,33 @@ class DataAPIClient:
         self.cluster_arn = cluster_arn
         self.database_name = database_name
 
+    def query(self, sql, parameters=None, mapper=POSTGRES_PYTHON_MAPPER):
+        data_client_params = ParameterBuilder().from_query(parameters)
+        response = self.rds_client.execute_statement(
+            secretArn=self.secret_arn, database=self.database_name,
+            resourceArn=self.cluster_arn, includeResultMetadata=True,
+            sql=sql, parameters=data_client_params
+        )
+        if 'columnMetadata' in response:
+            response = QueryResponse.from_dict(response)
+            return DictionaryMapper(response.metadata, mapper).map(response.records)
+        else:
+            return response['numberOfRecordsUpdated']
+
+
+
+
+
+
+class DataAPIClient2:
+
+    def __init__(self, rds_client, secret_arn, cluster_arn, database_name) -> None:
+        super().__init__()
+        self.rds_client = rds_client
+        self.secret_arn = secret_arn
+        self.cluster_arn = cluster_arn
+        self.database_name = database_name
+
     def execute(self, sql, parameters=(), wrap_result=True) -> QueryResponse:
         response = self.rds_client.execute_statement(
             secretArn=self.secret_arn, database=self.database_name,
@@ -189,9 +232,3 @@ class DictionaryMapper:
 
     def map(self, records):
         return [self.map_record(x) for x in records]
-
-
-class GraphQLMapper(DictionaryMapper):
-
-    def __init__(self, metadata: QueryMetadata):
-        super().__init__(metadata, GRAPHQL_CONVERTERS)

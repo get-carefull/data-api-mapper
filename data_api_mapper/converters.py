@@ -1,5 +1,6 @@
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
+from decimal import Decimal
 
 
 class JsonbToDict:
@@ -21,15 +22,35 @@ class TimestampzToDatetimeUTC:
         return datetime.fromisoformat(padded).replace(tzinfo=timezone.utc)
 
 
+class DateToDate:
+    @staticmethod
+    def convert(value):
+        return date.fromisoformat(value)
+
+
 class NumericToFloat:
     @staticmethod
     def convert(value):
         return float(value)
 
 
-GRAPHQL_CONVERTERS = {
+class NumericToDecimal:
+    @staticmethod
+    def convert(value):
+        return Decimal(value)
+
+
+POSTGRES_APPSYNC_CONVERTERS = {
     'jsonb': JsonbToDict,
     'timestamptz': TimestampzToAWSDateTime,
     'timestamp': TimestampzToAWSDateTime,
     'numeric': NumericToFloat
+}
+
+POSTGRES_PYTHON_MAPPER = {
+    'jsonb': JsonbToDict,
+    'timestamptz': TimestampzToDatetimeUTC,
+    'timestamp': TimestampzToDatetimeUTC,
+    'date': DateToDate,
+    'numeric': NumericToDecimal,
 }
