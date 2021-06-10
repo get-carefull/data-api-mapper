@@ -177,6 +177,22 @@ class DataAPIClient:
         else:
             return response['numberOfRecordsUpdated']
 
+    def paginator(self, sql, parameters=None, mapper=POSTGRES_PYTHON_MAPPER, page_size=100):
+        offset = 0
+
+        def paginate():
+            nonlocal offset
+            while True:
+                sql_paginated = f'{sql} limit {page_size} offset {offset}'
+                response = self.query(sql_paginated, parameters, mapper)
+                yield response
+                if len(response) < page_size:
+                    return
+                else:
+                    offset += page_size
+
+        return paginate()
+
     def begin_transaction(self):
         return Transaction(self.rds_client, self.secret_arn, self.cluster_arn, self.database_name)
 
