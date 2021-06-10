@@ -135,13 +135,10 @@ class Transaction:
             secretArn=self.secret_arn, database=self.database_name, resourceArn=self.cluster_arn
         )
         self.transaction_id = transaction['transactionId']
+        self.data_client = DataAPIClient(rds_client, secret_arn, cluster_arn, database_name, self.transaction_id)
 
-    def execute(self, sql, parameters=()) -> Dict[str, Any]:
-        return self.rds_client.execute_statement(
-            secretArn=self.secret_arn, database=self.database_name,
-            resourceArn=self.cluster_arn, includeResultMetadata=True,
-            sql=sql, parameters=parameters, transactionId=self.transaction_id
-        )
+    def query(self, sql, parameters=(), mapper=POSTGRES_PYTHON_MAPPER) -> Dict[str, Any]:
+        return self.data_client.query(sql, parameters, mapper)
 
     def commit(self) -> Dict[str, str]:
         return self.rds_client.commit_transaction(
@@ -156,8 +153,9 @@ class Transaction:
 
 class DataAPIClient:
 
-    def __init__(self, rds_client, secret_arn, cluster_arn, database_name) -> None:
+    def __init__(self, rds_client, secret_arn, cluster_arn, database_name, transaction_id=None) -> None:
         super().__init__()
+        self.transaction_id = transaction_id
         self.rds_client = rds_client
         self.secret_arn = secret_arn
         self.cluster_arn = cluster_arn
@@ -165,16 +163,22 @@ class DataAPIClient:
 
     def query(self, sql, parameters=None, mapper=POSTGRES_PYTHON_MAPPER):
         data_client_params = ParameterBuilder().from_query(parameters)
-        response = self.rds_client.execute_statement(
-            secretArn=self.secret_arn, database=self.database_name,
-            resourceArn=self.cluster_arn, includeResultMetadata=True,
-            sql=sql, parameters=data_client_params
-        )
+        config = {
+            'secretArn': self.secret_arn, 'database': self.database_name,
+            'resourceArn': self.cluster_arn, 'includeResultMetadata': True,
+            'sql': sql, 'parameters': data_client_params
+        }
+        if self.transaction_id is not None:
+            config['transactionId'] = self.transaction_id
+        response = self.rds_client.execute_statement(**config)
         if 'columnMetadata' in response:
             response = QueryResponse.from_dict(response)
             return DictionaryMapper(response.metadata, mapper).map(response.records)
         else:
             return response['numberOfRecordsUpdated']
+
+    def begin_transaction(self):
+        return Transaction(self.rds_client, self.secret_arn, self.cluster_arn, self.database_name)
 
 
 

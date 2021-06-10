@@ -131,18 +131,45 @@ class TestDataAPI(unittest.TestCase):
         self.assertEqual(a_json, row['doc'])
         self.assertEqual(Decimal(decimal_str), row['num_numeric'])
 
-    # def test_transaction(self):
-    #     transaction = self.data_client.begin_transaction()
-    #     transaction.execute('''
-    #         INSERT INTO aurora_data_api_test (id, a_name, doc, num_numeric, num_float, num_integer, ts, tz_notimezone)
-    #         VALUES (3, 'first row', '{"string_vale": "string1", "int_value": 1, "float_value": 1.11}', 1.12345, 1.11, 1, '1976-11-02 08:45:00 UTC', '2021-03-03 15:51:48.082288');
-    #     ''')
-    #     before_commit = self.data_client.execute("select * from aurora_data_api_test where id = 3")
-    #     self.assertEqual(0, len(before_commit.records))
-    #     transaction.commit()
-    #     after_commit = self.data_client.execute("select * from aurora_data_api_test where id = 3")
-    #     self.assertEqual(1, len(after_commit.records))
+    def test_transaction(self):
+        transaction = self.data_client.begin_transaction()
+        transaction.query('''
+            INSERT INTO aurora_data_api_test (id, a_name, doc, num_numeric, num_float, num_integer, ts, tz_notimezone)
+            VALUES (345, 'first row', '{"string_vale": "string1", "int_value": 1, "float_value": 1.11}', 1.12345, 1.11, 1, '1976-11-02 08:45:00 UTC', '2021-03-03 15:51:48.082288');
+        ''')
+        inside_transaction = transaction.query("select * from aurora_data_api_test where id = 345")
+        self.assertEqual(1, len(inside_transaction))
+        transaction.query('''
+            INSERT INTO aurora_data_api_test (id, a_name, doc, num_numeric, num_float, num_integer, ts, tz_notimezone)
+            VALUES (346, 'first row', '{"string_vale": "string1", "int_value": 1, "float_value": 1.11}', 1.12345, 1.11, 1, '1976-11-02 08:45:00 UTC', '2021-03-03 15:51:48.082288');
+        ''')
+        inside_transaction = transaction.query("select * from aurora_data_api_test where id in (345,346)")
+        self.assertEqual(2, len(inside_transaction))
+        before_commit = self.data_client.query("select * from aurora_data_api_test where id in (345,346)")
+        self.assertEqual(0, len(before_commit))
+        transaction.commit()
+        after_commit = self.data_client.query("select * from aurora_data_api_test where id in (345,346)")
+        self.assertEqual(2, len(after_commit))
 
+    def test_transaction_rollback(self):
+        transaction = self.data_client.begin_transaction()
+        transaction.query('''
+            INSERT INTO aurora_data_api_test (id, a_name, doc, num_numeric, num_float, num_integer, ts, tz_notimezone)
+            VALUES (355, 'first row', '{"string_vale": "string1", "int_value": 1, "float_value": 1.11}', 1.12345, 1.11, 1, '1976-11-02 08:45:00 UTC', '2021-03-03 15:51:48.082288')
+        ''')
+        inside_transaction = transaction.query("select * from aurora_data_api_test where id = 355")
+        self.assertEqual(1, len(inside_transaction))
+        transaction.query('''
+            INSERT INTO aurora_data_api_test (id, a_name, doc, num_numeric, num_float, num_integer, ts, tz_notimezone)
+            VALUES (356, 'first row', '{"string_vale": "string1", "int_value": 1, "float_value": 1.11}', 1.12345, 1.11, 1, '1976-11-02 08:45:00 UTC', '2021-03-03 15:51:48.082288')
+        ''')
+        inside_transaction = transaction.query("select * from aurora_data_api_test where id in (355,356)")
+        self.assertEqual(2, len(inside_transaction))
+        before_rollback = self.data_client.query("select * from aurora_data_api_test where id in (355,356)")
+        self.assertEqual(0, len(before_rollback))
+        transaction.rollback()
+        after_rollback = self.data_client.query("select * from aurora_data_api_test where id in (355,356)")
+        self.assertEqual(0, len(after_rollback))
 
     @classmethod
     def tearDownClass(cls):
