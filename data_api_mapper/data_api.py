@@ -2,6 +2,7 @@ import json
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
+from functools import reduce
 from typing import List, Dict, Any
 from data_api_mapper.converters import POSTGRES_PYTHON_MAPPER
 
@@ -87,7 +88,6 @@ class ParameterBuilder:
         elif isinstance(parameters, dict):
             self.add_dictionary(parameters)
         return self.build()
-
 
 
 @dataclass
@@ -177,6 +177,10 @@ class DataAPIClient:
         else:
             return response['numberOfRecordsUpdated']
 
+    def query_paginated(self, sql, parameters=None, mapper=POSTGRES_PYTHON_MAPPER, page_size=100):
+        paginator = self.paginator(sql, parameters, mapper, page_size)
+        return reduce(lambda x, y: x+y, paginator)
+
     def paginator(self, sql, parameters=None, mapper=POSTGRES_PYTHON_MAPPER, page_size=100):
         offset = 0
 
@@ -192,45 +196,6 @@ class DataAPIClient:
                     offset += page_size
 
         return paginate()
-
-    def begin_transaction(self):
-        return Transaction(self.rds_client, self.secret_arn, self.cluster_arn, self.database_name)
-
-
-
-
-
-
-class DataAPIClient2:
-
-    def __init__(self, rds_client, secret_arn, cluster_arn, database_name) -> None:
-        super().__init__()
-        self.rds_client = rds_client
-        self.secret_arn = secret_arn
-        self.cluster_arn = cluster_arn
-        self.database_name = database_name
-
-    def execute(self, sql, parameters=(), wrap_result=True) -> QueryResponse:
-        response = self.rds_client.execute_statement(
-            secretArn=self.secret_arn, database=self.database_name,
-            resourceArn=self.cluster_arn, includeResultMetadata=True,
-            sql=sql, parameters=parameters
-        )
-        return QueryResponse.from_dict(response) if wrap_result else response
-
-    def execute_paginated(self, sql, parameters=(), page_size=100):
-        return self.paginate(QueryResponse([], None), sql, parameters, page_size, 0)
-
-    def paginate(self, result: QueryResponse, sql, parameters, page_size, offset):
-        sql_paginated = f'{sql} limit {page_size} offset {offset}'
-        response = self.execute(sql_paginated, parameters)
-        result.records.extend(response.records)
-        result.metadata = response.metadata
-        if len(response.records) < page_size:
-            return result
-        else:
-            return self.paginate(result, sql, parameters, page_size, offset + page_size)
-
 
     def begin_transaction(self):
         return Transaction(self.rds_client, self.secret_arn, self.cluster_arn, self.database_name)

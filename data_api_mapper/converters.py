@@ -40,7 +40,7 @@ class NumericToDecimal:
         return Decimal(value)
 
 
-POSTGRES_APPSYNC_CONVERTERS = {
+POSTGRES_APPSYNC_MAPPER = {
     'jsonb': JsonbToDict,
     'timestamptz': TimestampzToAWSDateTime,
     'timestamp': TimestampzToAWSDateTime,
