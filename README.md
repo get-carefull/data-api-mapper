@@ -79,7 +79,7 @@ class DataAPIClient:
 
 ```
 
-There is also a mapper for AppSync, you can check the mappers [here](https://github.com/get-carefull/data-api-mapper/blob/26ab16d2972fb14e0eb8a86a1768b35cc2989eb1/data_api_mapper/converters.py).
+There is also a mapper for AppSync, you can check the mappers [here](https://github.com/get-carefull/data-api-mapper/blob/master/data_api_mapper/converters.py).
 <br>
 If you use MySQL you need a mapper.
 
@@ -96,7 +96,7 @@ result = data_client.query(
     { 'id': 2, 'createDate': datetime.date(2021,6,1) }
 )
 ```
-For all the conversions, check [here](https://github.com/get-carefull/data-api-mapper/blob/26ab16d2972fb14e0eb8a86a1768b35cc2989eb1/data_api_mapper/data_api.py#L9) 
+For all the conversions, check [here](https://github.com/get-carefull/data-api-mapper/blob/master/data_api_mapper/data_api.py#L10) 
 
 ## Transactions
 
