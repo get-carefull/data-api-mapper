@@ -53,6 +53,9 @@ class ParameterBuilder:
         elif isinstance(value, Decimal):
             self.result.append(self.build_entry_map(name, str(value), 'stringValue', 'DECIMAL'))
             return self
+        elif value is None:
+            self.result.append(self.build_entry_map(name, True, 'isNull'))
+            return self
         else:
             raise ValueError('The data type of the value does not match against any of the expected')
 
