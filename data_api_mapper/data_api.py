@@ -59,14 +59,6 @@ class ParameterBuilder:
         else:
             raise ValueError('The data type of the value does not match against any of the expected')
 
-    def add_or_null(self, name, value):
-        if value is None:
-            self.result.append(self.build_entry_map(name, True, 'isNull'))
-            return self
-        else:
-            self.add(name, value)
-            return self
-
     def add_dictionary(self, a_dict):
         for x in a_dict.keys():
             self.add(x, a_dict[x])
@@ -82,9 +74,7 @@ class ParameterBuilder:
             for param in parameters:
                 name = param['name']
                 value = param['value']
-                if 'allow_null' in param and param['allow_null']:
-                    self.add_or_null(name, value)
-                elif 'cast' in param:
+                if 'cast' in param:
                     self.result.append({'name': name, 'value': {'stringValue': value}, 'typeHint': param['cast']})
                 else:
                     self.add(name, value)
