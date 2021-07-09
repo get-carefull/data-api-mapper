@@ -171,6 +171,17 @@ class DataAPIClient:
         else:
             return response['numberOfRecordsUpdated']
 
+    def batch_query(self, sql, parameter_list=(), transaction_id=None):
+        data_client_params = [ParameterBuilder().from_query(x) for x in parameter_list]
+        config = {
+            'secretArn': self.secret_arn, 'database': self.database_name, 'resourceArn': self.cluster_arn,
+            'sql': sql, 'parameterSets': data_client_params
+        }
+        if transaction_id is not None:
+            config['transactionId'] = transaction_id
+        response = self.rds_client.batch_execute_statement(**config)
+        return response
+
     def query_paginated(self, sql, parameters=None, mapper=POSTGRES_PYTHON_MAPPER, page_size=100):
         paginator = self.paginator(sql, parameters, mapper, page_size)
         return reduce(lambda x, y: x+y, paginator)
