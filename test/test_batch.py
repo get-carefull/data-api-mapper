@@ -35,6 +35,21 @@ class TestPagination(unittest.TestCase):
         self.data_client.batch_query(sql, parameters)
         count = self.data_client.query('select count(*) from aurora_data_api_batch_test')[0]['count']
         self.assertEqual(100, count)
+        self.data_client.query('delete from aurora_data_api_batch_test')
+
+    def test_batch_tx(self):
+        sql = ''' 
+                insert into aurora_data_api_batch_test (id, id_text) values (:id, :id_text)
+            '''
+        parameters = [{'id': x, 'id_text': str(x)} for x in range(1, 101)]
+        tx = self.data_client.begin_transaction()
+        tx.data_client.batch_query(sql, parameters)
+        parameters = [{'id': x, 'id_text': str(x)} for x in range(101, 201)]
+        tx.data_client.batch_query(sql, parameters)
+        tx.commit()
+        count = self.data_client.query('select count(*) from aurora_data_api_batch_test')[0]['count']
+        self.assertEqual(200, count)
+        self.data_client.query('delete from aurora_data_api_batch_test')
 
     @classmethod
     def tearDownClass(cls):

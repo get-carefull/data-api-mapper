@@ -133,6 +133,9 @@ class Transaction:
     def query(self, sql, parameters=(), mapper=POSTGRES_PYTHON_MAPPER) -> Dict[str, Any]:
         return self.data_client.query(sql, parameters, mapper, self.transaction_id)
 
+    def batch_query(self, sql, parameters=()) -> Dict[str, Any]:
+        return self.data_client.batch_query(sql, parameters, self.transaction_id)
+
     def commit(self) -> Dict[str, str]:
         return self.rds_client.commit_transaction(
             secretArn=self.secret_arn, resourceArn=self.cluster_arn, transactionId=self.transaction_id
