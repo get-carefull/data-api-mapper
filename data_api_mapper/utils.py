@@ -13,6 +13,8 @@ class DatetimeUtils:
 
     @staticmethod
     def to_utc_and_offset(d):
+        if d is None:
+            return None, None
         if DatetimeUtils.is_naive(d):
             return d.replace(tzinfo=timezone.utc), None
         offset = int(d.utcoffset() / timedelta(seconds=1))

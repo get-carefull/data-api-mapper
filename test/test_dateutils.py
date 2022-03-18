@@ -9,13 +9,13 @@ class TestDatetimeOffset(unittest.TestCase):
     def test_naive(self):
         dt1 = datetime(2022, 4, 1, 16, 30, 3)
         dt2, offset = DatetimeUtils.to_utc_and_offset(dt1)
-        self.assertEqual(offset, None)
+        self.assertIsNone(offset)
         self.assertEqual(dt2, dt1.replace(tzinfo=timezone.utc))
 
     def test_utc(self):
         dt1 = datetime(2022, 4, 1, 16, 30, 3, tzinfo=timezone.utc)
         dt2, offset = DatetimeUtils.to_utc_and_offset(dt1)
-        self.assertEqual(offset, None)
+        self.assertIsNone(offset)
         self.assertEqual(dt2, dt1)
 
     def test_utc(self):
@@ -23,4 +23,9 @@ class TestDatetimeOffset(unittest.TestCase):
         dt2, offset = DatetimeUtils.to_utc_and_offset(dt1)
         self.assertEqual(offset, -7 * 3600)
         self.assertEqual(dt2, dt1.astimezone(timezone.utc))
+
+    def test_null(self):
+        d, offset = DatetimeUtils.to_utc_and_offset(None)
+        self.assertIsNone(d)
+        self.assertIsNone(offset)
 
