@@ -56,7 +56,7 @@ class TestDatetimeOffset(unittest.TestCase):
         self.data_client.query(sql, params)
         d = self.data_client.query('select datetime, datetime_offset from aurora_data_api_dates_test where id = 3')[0]
         self.assertEqual(d['datetime'], d_los_angeles.astimezone(timezone.utc))
-        self.assertEqual(d['datetime_offset'], -7)
+        self.assertEqual(d['datetime_offset'], -7 * 3600)
 
 
 

@@ -21,6 +21,6 @@ class TestDatetimeOffset(unittest.TestCase):
     def test_utc(self):
         dt1 = datetime(2022, 4, 1, 16, 30, 3, tzinfo=ZoneInfo("America/Los_Angeles"))
         dt2, offset = DatetimeUtils.to_utc_and_offset(dt1)
-        self.assertEqual(offset, -7)
+        self.assertEqual(offset, -7 * 3600)
         self.assertEqual(dt2, dt1.astimezone(timezone.utc))
 
