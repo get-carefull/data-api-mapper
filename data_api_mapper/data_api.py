@@ -1,10 +1,11 @@
 import json
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from decimal import Decimal
 from functools import reduce
 from typing import List, Dict, Any
 from data_api_mapper.converters import POSTGRES_PYTHON_MAPPER
+from data_api_mapper.utils import DatetimeUtils
 
 
 class ParameterBuilder:
@@ -45,7 +46,11 @@ class ParameterBuilder:
             self.result.append(self.build_entry_map(name, value, 'doubleValue'))
             return self
         elif isinstance(value, datetime):
-            self.result.append(self.build_entry_map(name, str(value), 'stringValue', 'TIMESTAMP'))
+            if DatetimeUtils.is_aware(value):
+                converted = str(value.astimezone(timezone.utc).replace(tzinfo=None))
+            else:
+                converted = str(value)
+            self.result.append(self.build_entry_map(name, converted, 'stringValue', 'TIMESTAMP'))
             return self
         elif isinstance(value, date):
             self.result.append(self.build_entry_map(name, str(value), 'stringValue', 'DATE'))
